@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sorting Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .bar {
+      transition: all 0.4s ease;
+      border-radius: 6px 6px 0 0;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-purple-100 to-pink-100 min-h-screen flex flex-col items-center p-8">
+
+  <h1 class="text-4xl font-extrabold text-purple-900 mb-6">Sorting Visualizer</h1>
+
+  <!-- Input Section -->
+  <div class="flex flex-wrap items-center justify-center gap-4 mb-6 w-full max-w-4xl">
+    <input id="arrayInput" type="text" placeholder="Enter numbers (e.g. 10,5,30,15)"
+      class="border border-purple-400 px-4 py-2 rounded-lg w-80 text-center focus:outline-none focus:ring-2 focus:ring-pink-400" />
+
+    <select id="algorithm" class="border border-purple-400 px-4 py-2 rounded-lg bg-white">
+      <option value="bubble">Bubble Sort</option>
+      <option value="selection">Selection Sort</option>
+      <option value="insertion">Insertion Sort</option>
+      <option value="merge">Merge Sort</option>
+      <option value="quick">Quick Sort</option>
+    </select>
+
+    <button id="generateBtn" class="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg shadow-lg">
+      Generate Array
+    </button>
+  </div>
+
+  <!-- Sort Buttons -->
+  <div class="flex flex-wrap justify-center gap-6 mb-6 w-full max-w-4xl">
+    <button id="sortAscBtn" class="bg-green-400 hover:bg-green-500 text-white px-6 py-2 rounded-lg shadow-lg">
+      Sort Increasing
+    </button>
+    <button id="sortDescBtn" class="bg-red-400 hover:bg-red-500 text-white px-6 py-2 rounded-lg shadow-lg">
+      Sort Decreasing
+    </button>
+  </div>
+
+  <!-- Visualizer -->
+  <div id="visualizer" class="flex items-end justify-center gap-2 w-full max-w-5xl h-96 bg-white rounded-2xl p-4 shadow-lg border border-purple-200 pb-10"></div>
+
+  <script>
+    const visualizer = document.getElementById("visualizer");
+    const arrayInput = document.getElementById("arrayInput");
+    const generateBtn = document.getElementById("generateBtn");
+    const sortAscBtn = document.getElementById("sortAscBtn");
+    const sortDescBtn = document.getElementById("sortDescBtn");
+    const algorithmSelect = document.getElementById("algorithm");
+
+    let array = [40, 13, 20, 8, 10];
+
+    function renderArray(arr, highlight = []) {
+      visualizer.innerHTML = "";
+      const maxVal = Math.max(...arr);
+      arr.forEach((val, i) => {
+        const barHeight = (val / maxVal) * 90;
+        const barColor = highlight.includes(i)
+          ? "from-yellow-400 to-yellow-500"
+          : "from-purple-400 to-purple-600";
+        const bar = document.createElement("div");
+        bar.className = `bar w-10 relative flex flex-col items-center justify-end bg-gradient-to-t ${barColor}`;
+        bar.style.height = `${barHeight}%`;
+        bar.innerHTML = `
+          <span class="absolute -top-6 text-sm text-gray-900 font-semibold">${val}</span>
+          <span class="absolute -bottom-6 text-xs text-gray-700">${i}</span>
+        `;
+        visualizer.appendChild(bar);
+      });
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // ----- Bubble Sort -----
+    async function bubbleSort(arr, order) {
+      const n = arr.length;
+      for (let i = 0; i < n - 1; i++) {
+        for (let j = 0; j < n - i - 1; j++) {
+          renderArray(arr, [j, j + 1]);
+          await sleep(300);
+          if ((order === "asc" && arr[j] > arr[j + 1]) ||
+              (order === "desc" && arr[j] < arr[j + 1])) {
+            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+            renderArray(arr, [j, j + 1]);
+            await sleep(300);
+          }
+        }
+      }
+      renderArray(arr);
+    }
+
+    // ----- Selection Sort -----
+    async function selectionSort(arr, order) {
+      const n = arr.length;
+      for (let i = 0; i < n - 1; i++) {
+        let minIdx = i;
+        for (let j = i + 1; j < n; j++) {
+          renderArray(arr, [minIdx, j]);
+          await sleep(300);
+          if ((order === "asc" && arr[j] < arr[minIdx]) ||
+              (order === "desc" && arr[j] > arr[minIdx])) {
+            minIdx = j;
+          }
+        }
+        [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+        renderArray(arr, [i]);
+        await sleep(300);
+      }
+      renderArray(arr);
+    }
+
+    // ----- Insertion Sort -----
+    async function insertionSort(arr, order) {
+      for (let i = 1; i < arr.length; i++) {
+        let key = arr[i];
+        let j = i - 1;
+        while (j >= 0 && ((order === "asc" && arr[j] > key) ||
+                          (order === "desc" && arr[j] < key))) {
+          arr[j + 1] = arr[j];
+          renderArray(arr, [j, j + 1]);
+          await sleep(300);
+          j--;
+        }
+        arr[j + 1] = key;
+        renderArray(arr, [i]);
+        await sleep(300);
+      }
+    }
+
+    // ----- Merge Sort -----
+    async function mergeSort(arr, order, start = 0, end = arr.length - 1) {
+      if (start >= end) return;
+      const mid = Math.floor((start + end) / 2);
+      await mergeSort(arr, order, start, mid);
+      await mergeSort(arr, order, mid + 1, end);
+      await merge(arr, order, start, mid, end);
+    }
+
+    async function merge(arr, order, start, mid, end) {
+      let left = arr.slice(start, mid + 1);
+      let right = arr.slice(mid + 1, end + 1);
+      let i = 0, j = 0, k = start;
+      while (i < left.length && j < right.length) {
+        renderArray(arr, [k]);
+        await sleep(300);
+        if ((order === 'asc' && left[i] <= right[j]) ||
+            (order === 'desc' && left[i] >= right[j])) {
+          arr[k++] = left[i++];
+        } else {
+          arr[k++] = right[j++];
+        }
+      }
+      while (i < left.length) arr[k++] = left[i++];
+      while (j < right.length) arr[k++] = right[j++];
+      renderArray(arr);
+      await sleep(300);
+    }
+
+    // ----- Quick Sort -----
+    async function quickSort(arr, order, low = 0, high = arr.length - 1) {
+      if (low < high) {
+        const pi = await partition(arr, order, low, high);
+        await quickSort(arr, order, low, pi - 1);
+        await quickSort(arr, order, pi + 1, high);
+      }
+    }
+
+    async function partition(arr, order, low, high) {
+      const pivot = arr[high];
+      let i = low - 1;
+      for (let j = low; j < high; j++) {
+        renderArray(arr, [j, high]);
+        await sleep(300);
+        if ((order === 'asc' && arr[j] < pivot) ||
+            (order === 'desc' && arr[j] > pivot)) {
+          i++;
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          renderArray(arr, [i, j]);
+          await sleep(300);
+        }
+      }
+      [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+      renderArray(arr, [i + 1]);
+      await sleep(300);
+      return i + 1;
+    }
+
+    // ----- Controller -----
+    async function sortArray(order) {
+      const arrCopy = [...array];
+      const algorithm = algorithmSelect.value;
+      if (algorithm === "bubble") await bubbleSort(arrCopy, order);
+      else if (algorithm === "selection") await selectionSort(arrCopy, order);
+      else if (algorithm === "insertion") await insertionSort(arrCopy, order);
+      else if (algorithm === "merge") await mergeSort(arrCopy, order);
+      else if (algorithm === "quick") await quickSort(arrCopy, order);
+      renderArray(arrCopy);
+    }
+
+    // ----- Event Listeners -----
+    generateBtn.addEventListener("click", () => {
+      const input = arrayInput.value.trim();
+      array = input ? input.split(",").map(Number) : [40, 13, 20, 8, 10];
+      renderArray(array);
+    });
+
+    sortAscBtn.addEventListener("click", () => sortArray("asc"));
+    sortDescBtn.addEventListener("click", () => sortArray("desc"));
+
+    renderArray(array);
+  </script>
+</body>
+</html>
